@@ -1,0 +1,16 @@
+{
+  "id": "supathink",
+  "name": "supathink 超限思考",
+  "description": "交付前审稿:Critic 正确性核验 + Navigator 对齐检查,revise 打回重写(策略集中在 supathink daemon)",
+  "version": "0.2.0",
+  "activation": { "onStartup": true },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "daemonUrl": { "type": "string", "default": "http://127.0.0.1:7777" },
+      "timeoutMs": { "type": "number", "default": 90000 },
+      "maxAttempts": { "type": "number", "default": 2 }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "supathink-openclaw-plugin",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "supathink OpenClaw 原生插件:before_agent_finalize 硬拦截 → daemon /v1/review → revise 重写循环",
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  },
+  "license": "Apache-2.0"
+}
