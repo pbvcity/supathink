@@ -1,0 +1,15 @@
+{
+  "id": "supathink",
+  "name": "supathink 超限思考",
+  "description": "让 AI 真正思考——思考方法/多模型合议/交付前校验。入口壳,首次 /st:init 引导安装 daemon 与配置。",
+  "version": "1.0.5",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "skills": "./skills",
+  "author": {
+    "name": "pbvcity"
+  },
+  "license": "Apache-2.0"
+}
