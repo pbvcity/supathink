@@ -1,0 +1,27 @@
+{
+  "id": "supathink",
+  "name": "supathink 超限思考",
+  "description": "让 agent 真正思考:值得深思的回答交付前过双轴审(Critic 正确性 × Navigator 对齐),问题打回重想;思考方法与多模型合议由 supathink daemon 统一编排",
+  "version": "1.1.2",
+  "activation": {
+    "onStartup": true
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "daemonUrl": {
+        "type": "string",
+        "default": "http://127.0.0.1:7777"
+      },
+      "timeoutMs": {
+        "type": "number",
+        "default": 90000
+      },
+      "maxAttempts": {
+        "type": "number",
+        "default": 2
+      }
+    }
+  }
+}

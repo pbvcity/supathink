@@ -1,0 +1,36 @@
+{
+  "name": "@pbvcity/supathink-openclaw",
+  "version": "1.1.2",
+  "description": "让 OpenClaw agent 真正思考:交付前 before_agent_finalize 硬拦截 → supathink daemon 审稿(Critic 正确性 × Navigator 对齐)→ revise 打回重想;思考方法与多模型合议由 daemon 统一编排",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "pbvcity"
+  },
+  "homepage": "https://github.com/pbvcity/supathink",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pbvcity/supathink"
+  },
+  "keywords": [
+    "openclaw",
+    "supathink",
+    "ai",
+    "hallucination",
+    "fact-checking",
+    "critical-thinking"
+  ],
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "README.md"
+  ],
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ]
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.5.17"
+  }
+}
