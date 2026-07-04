@@ -1,0 +1,119 @@
+#!/usr/bin/env node
+'use strict';
+// supathink CLI:log(§3.2 慢查随查)/ status / quota / on / off
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+const ROOT = path.join(os.homedir(), '.supathink');
+const PORT = Number(process.env.SUPATHINK_PORT || 7777);
+const [cmd, arg] = process.argv.slice(2);
+
+function latestSession() {
+  const dir = path.join(ROOT, 'sessions');
+  try {
+    return fs.readdirSync(dir)
+      .map((d) => ({ d, t: fs.statSync(path.join(dir, d, 'trace.jsonl')).mtimeMs }))
+      .sort((a, b) => b.t - a.t)[0]?.d;
+  } catch (_) { return null; }
+}
+
+(async () => {
+  if (cmd === 'log') {
+    const sid = arg || latestSession();
+    if (!sid) return console.log('无会话');
+    try {
+      const res = await fetch(`http://127.0.0.1:${PORT}/v1/log/${encodeURIComponent(sid)}`);
+      console.log(`session: ${sid}\n` + (await res.text()));
+    } catch (_) {
+      console.log('daemon 未运行;直接读 trace:');
+      try { console.log(fs.readFileSync(path.join(ROOT, 'sessions', sid, 'trace.jsonl'), 'utf8')); } catch (e) { console.log('读不到 trace'); }
+    }
+  } else if (cmd === 'status') {
+    try {
+      const res = await fetch(`http://127.0.0.1:${PORT}/healthz`);
+      console.log('daemon:', await res.text());
+    } catch (_) { console.log('daemon: down(宿主此时为原生模式)'); }
+    console.log('总开关:', fs.existsSync(path.join(ROOT, 'DISABLED')) ? '已停用(DISABLED 存在)' : '启用');
+    try { console.log('env:', fs.readFileSync(path.join(ROOT, 'env'), 'utf8').split('\n').filter((l) => l && !l.startsWith('#') && !l.includes('KEY')).join(' | ')); } catch (_) {}
+  } else if (cmd === 'quota') {
+    try {
+      const lines = fs.readFileSync(path.join(ROOT, 'quota.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+      const byEvent = {};
+      let cost = 0;
+      for (const e of lines) {
+        byEvent[e.event || 'critic_run'] = (byEvent[e.event || 'critic_run'] || 0) + 1;
+        if (e.total_cost_usd) cost += e.total_cost_usd;
+      }
+      console.log(`共 ${lines.length} 次副驾调用`, byEvent, `haiku 订阅等值 $${cost.toFixed(4)}`);
+    } catch (_) { console.log('无 quota 记录'); }
+  } else if (cmd === 'escalate') {
+    // 手动/auto 已开启时的升档入口:写 cwd 域升档文件,本轮 Stop 在 auto 生效时消费。
+    const mode = arg;
+    if (!['light', 'full'].includes(mode)) return console.log('用法:supathink escalate <light|full> [--methods "..."] [--reason "..."]');
+    const rest = process.argv.slice(4).join(' ');
+    const methods = (rest.match(/--methods\s+"?([^"]+?)"?(\s+--|$)/) || [])[1] || null;
+    const reason = (rest.match(/--reason\s+"?([^"]+?)"?(\s+--|$)/) || [])[1] || null;
+    const dir = path.join(ROOT, 'escalations');
+    fs.mkdirSync(dir, { recursive: true });
+    const slug = process.cwd().replace(/[\/\\]/g, '-').replace(/^-+/, '') || 'unknown';
+    fs.writeFileSync(path.join(dir, slug + '.json'), JSON.stringify({ mode, methods, reason, cwd: process.cwd(), ts: Date.now() }));
+    console.log(`已升档:本轮 ${mode}${methods ? ',声明方法:' + methods : ''}(交付前将被核验)`);
+  } else if (['panel', 'panel-lite', 'debate', 'delphi', 'redblue'].includes(cmd)) {
+    // 手动/auto 已开启时召集合议:挂到本 cwd 最新会话,综合结果下一轮强制可见交付。
+    const question = process.argv.slice(3).join(' ').trim();
+    if (!question) return console.log('用法:supathink panel|panel-lite|debate|delphi|redblue <议题>');
+    try {
+      const res = await fetch(`http://127.0.0.1:${PORT}/v1/panel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cwd: process.cwd(), question, mode: cmd === 'panel-lite' ? 'lite' : cmd }),
+      });
+      const j = await res.json();
+      console.log(j.error ? `panel 未启动:${j.error}` : `${cmd} 已在后台运行(挂到会话 ${j.session_id || '?'}),综合结果下一轮将强制可见交付,也可 supathink log 查看`);
+    } catch (_) { console.log('daemon 未运行,先跑 ensure-daemon.sh'); }
+  } else if (cmd === 'win') {
+    // 北极星(§16):人工标记一次真实救场——系统拦下了你差点采纳的错误结论
+    const desc = process.argv.slice(3).join(' ').trim();
+    if (!desc) return console.log('用法:supathink win "一句话描述拦下了什么"');
+    const sid = latestSession();
+    if (!sid) return console.log('无会话可挂');
+    let turn = 0;
+    try { turn = JSON.parse(fs.readFileSync(path.join(ROOT, 'sessions', sid, 'state.json'), 'utf8')).turn || 0; } catch (_) {}
+    fs.appendFileSync(path.join(ROOT, 'sessions', sid, 'trace.jsonl'),
+      JSON.stringify({ ts: new Date().toISOString(), session_id: sid, turn, type: 'intercept_win', desc }) + '\n');
+    console.log(`已记 intercept_win #? → 「${desc}」(挂在会话 ${sid.slice(0, 8)}…)。supathink stats 可见。`);
+  } else if (cmd === 'stats') {
+    // 评测面板(§13 Phase 4 四指标):Critic precision / 核验缓存命中率 / full 触发率 / intercept_win 计数
+    const sessions = path.join(ROOT, 'sessions');
+    let routes = 0, fulls = 0, verifs = 0, cacheHits = 0, wins = 0;
+    try {
+      for (const d of fs.readdirSync(sessions)) {
+        const f = path.join(sessions, d, 'trace.jsonl');
+        if (!fs.existsSync(f)) continue;
+        for (const line of fs.readFileSync(f, 'utf8').trim().split('\n')) {
+          try {
+            const e = JSON.parse(line);
+            if (e.type === 'route_decision') { routes++; if (e.mode === 'full') fulls++; }
+            if (e.type === 'verification_result') { verifs++; if (e.cache_hit) cacheHits++; }
+            if (e.type === 'intercept_win') wins++;
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+    let seed = '未评测(跑 node test/seedset-eval.js)';
+    try { seed = fs.readFileSync(path.join(ROOT, 'seedset-last.txt'), 'utf8').trim(); } catch (_) {}
+    console.log(`Critic precision(种子集): ${seed}`);
+    console.log(`核验缓存命中率: ${verifs ? ((cacheHits / verifs) * 100).toFixed(1) + '%' : '—'}(${cacheHits}/${verifs})`);
+    console.log(`full 触发率: ${routes ? ((fulls / routes) * 100).toFixed(1) + '%' : '—'}(${fulls}/${routes} 轮)`);
+    console.log(`intercept_win(北极星): ${wins} 次${wins ? '' : '——尚无;某次拦截真救了你时,跑 supathink win "一句话描述" 记上一笔'}`);
+  } else if (cmd === 'pb-review') {
+    require(path.join(ROOT, 'bin', 'pb-review.js'));
+  } else if (cmd === 'on') {
+    fs.rmSync(path.join(ROOT, 'DISABLED'), { force: true }); console.log('已启用');
+  } else if (cmd === 'off') {
+    fs.writeFileSync(path.join(ROOT, 'DISABLED'), ''); console.log('已停用(hook 静默放行)');
+  } else {
+    console.log('用法:supathink log [session_id] | status | quota | stats | win "描述" | pb-review | on | off | escalate | panel…');
+  }
+})();

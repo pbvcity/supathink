@@ -1,0 +1,21 @@
+{
+  "name": "supathink",
+  "owner": {
+    "name": "pbvcity"
+  },
+  "metadata": {
+    "description": "supathink 超限思考——让 AI 真正思考(思考方法 × 多脑合议 × 交付前校验)",
+    "version": "1.1.5"
+  },
+  "plugins": [
+    {
+      "name": "st",
+      "description": "supathink 超限思考:让 AI 真正思考——思考方法 × 多脑合议 × 交付前双轴校验。命令前缀 /st:",
+      "version": "1.1.5",
+      "author": {
+        "name": "pbvcity"
+      },
+      "source": "./plugins/st"
+    }
+  ]
+}
