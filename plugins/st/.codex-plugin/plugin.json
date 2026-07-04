@@ -1,0 +1,13 @@
+{
+  "name": "st",
+  "version": "1.1.4",
+  "description": "supathink 超限思考:让 AI 真正思考——思考方法/多模型合议/交付前双轴校验。命令前缀 /st:。首次 /st:init 引导安装 daemon。",
+  "author": {
+    "name": "pbvcity"
+  },
+  "license": "Apache-2.0",
+  "skills": "./codex-skills",
+  "interface": {
+    "displayName": "supathink 超限思考"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "supathink",
+  "interface": { "displayName": "supathink 超限思考" },
+  "plugins": [
+    {
+      "name": "st",
+      "source": { "source": "local", "path": "./plugins/st" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_USE" },
+      "category": "Productivity"
+    }
+  ]
+}

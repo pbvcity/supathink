@@ -1,0 +1,10 @@
+{
+  "name": "st",
+  "version": "1.1.4",
+  "description": "让 AI 真正思考——思考方法(声明即契约)× 多模型合议(panel/debate/delphi/redblue)× 交付前双轴校验(Critic 正确性 × Navigator 对齐)× playbook 学习。本插件是入口壳(命令+引导);首次用 /st:init 让 AI 带你完成 daemon 安装与配置。",
+  "author": {
+    "name": "pbvcity"
+  },
+  "homepage": "https://github.com/pbvcity/supathink",
+  "license": "Apache-2.0"
+}
